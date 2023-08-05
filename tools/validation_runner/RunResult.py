@@ -21,7 +21,7 @@ from TestResult import scan_for_pattern, coverage_to_log
 
 class RunResult:
     def __init__(self, test_results=None):
-        if test_results == None:
+        if test_results is None:
             return
         # Init run info
         self.get_branch_commit()
@@ -99,46 +99,54 @@ class RunResult:
         return self
 
     def print_stats(self):
-        print('[+] Validation result for {}:{}'.format(self.branch, self.commit))
-        print('[+] Passed {}/{} validation tests'.format(self.passed_tests, self.total_tests))
-        print('[+] Executed {} total instructions'.format(self.total_instr))
-        print('[+] Executed {} unique instructions'.format(self.unique_instr))
-        print('[+] Encountered {} memoryAccess errors'.format(self.memaccess_error))
-        print('[+] Encountered {} unique memoryAccess errors'.format(len(list(self.memaccess_unique.items()))))
-        print('[+] Encountered {} total errors:'.format(self.errors))
-        print('[+]     No impact errors: {}'.format(self.no_impact_err))
-        print('[+]     Non critical errors: {}'.format(self.non_critical_err))
-        print('[+]     Critical errors: {}'.format(self.critical_err))
-        print('[+] Encountered {} total error cascades:'.format(self.cascades))
-        print('[+]     No impact cascades: {}'.format(self.no_impact_casc))
-        print('[+]     Non critical cascades: {}'.format(self.non_critical_casc))
-        print('[+]     Critical cascades: {}'.format(self.critical_casc))
+        print(f'[+] Validation result for {self.branch}:{self.commit}')
+        print(f'[+] Passed {self.passed_tests}/{self.total_tests} validation tests')
+        print(f'[+] Executed {self.total_instr} total instructions')
+        print(f'[+] Executed {self.unique_instr} unique instructions')
+        print(f'[+] Encountered {self.memaccess_error} memoryAccess errors')
+        print(
+            f'[+] Encountered {len(list(self.memaccess_unique.items()))} unique memoryAccess errors'
+        )
+        print(f'[+] Encountered {self.errors} total errors:')
+        print(f'[+]     No impact errors: {self.no_impact_err}')
+        print(f'[+]     Non critical errors: {self.non_critical_err}')
+        print(f'[+]     Critical errors: {self.critical_err}')
+        print(f'[+] Encountered {self.cascades} total error cascades:')
+        print(f'[+]     No impact cascades: {self.no_impact_casc}')
+        print(f'[+]     Non critical cascades: {self.non_critical_casc}')
+        print(f'[+]     Critical cascades: {self.critical_casc}')
 
     def compartive_analysis(self, db):
         prev_run = db.get_last_run(self.branch)
-        if prev_run == None:
+        if prev_run is None:
             prev_run = db.get_last_run('master')
-            if prev_run == None:
-                print('[+] No previous run in the DB to compare with')
-                return
-        print('[+] Comparing with validation run from {}:{}'.format(prev_run.branch, prev_run.commit))
+        if prev_run is None:
+            print('[+] No previous run in the DB to compare with')
+            return
+        print(
+            f'[+] Comparing with validation run from {prev_run.branch}:{prev_run.commit}'
+        )
         regression = 0
         for t1 in prev_run.test_results:
             for t2 in self.test_results:
                 # Check if the command and arguments are identical
                 if t1.cfg.command == t2.cfg.command and t1.cfg.arguments == t2.cfg.arguments:
                     if t1.retcode == 0 and t2.retcode != 0:
-                        print('[+] ERROR: Regresssion on test {}'.format(t1.cfg.command_line()))
+                        print(f'[+] ERROR: Regresssion on test {t1.cfg.command_line()}')
                         # Warn of binary hash change
                         if t1.binary_hash != t2.binary_hash:
                             print('[+] \tWARNING: Binary hashes are not the same')
                         regression += 1
                     elif t2.errors > t1.errors:
-                        print('[+] WARNING: Increased error count on test {}'.format(t1.cfg.command_line()))
+                        print(f'[+] WARNING: Increased error count on test {t1.cfg.command_line()}')
                         if t2.no_impact_err > t1.no_impact_err:
-                            print('[+] \tNo impact errors increased: {} -> {}'.format(t1.no_impact_err, t2.no_impact_err))
+                            print(
+                                f'[+] \tNo impact errors increased: {t1.no_impact_err} -> {t2.no_impact_err}'
+                            )
                         if t2.non_critical_err > t1.non_critical_err:
-                            print('[+] \tNon critical errors increased: {} -> {}'.format(t1.non_critical_err, t2.non_critical_err))
+                            print(
+                                f'[+] \tNon critical errors increased: {t1.non_critical_err} -> {t2.non_critical_err}'
+                            )
                         # Warn of binary hash change
                         if t1.binary_hash != t2.binary_hash:
                             print('[+] \tWARNING: Binary hashes are not the same')
@@ -146,7 +154,7 @@ class RunResult:
         if regression == 0:
             print('[+] No regression')
         else:
-            print('[+] ERROR: {} regressions encountered'.format(regression))
+            print(f'[+] ERROR: {regression} regressions encountered')
         return regression
 
 
@@ -154,7 +162,7 @@ class RunResult:
         try:
             out = subprocess.check_output(['git', 'status', '-b', '-uno', '--porcelain=2'], universal_newlines=True)
         except Exception as e:
-            print('[!] git command error : {}'.format(e))
+            print(f'[!] git command error : {e}')
             self.commit = 'UNKNOWN'
             self.branch = 'UNKNOWN'
         else:

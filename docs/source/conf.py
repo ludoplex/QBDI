@@ -24,19 +24,19 @@ RE_VERSION = re.compile('.*QBDI_VERSION_(\S*)\s*(\d*).*')
 def extract_version(cmakefile):
     major = minor = patch = dev = -1
     with open(cmakefile) as fp:
-        for line in fp.readlines():
+        for line in fp:
             m = RE_VERSION.match(line)
             if not m:
                 continue
             cat, version = m.groups()
-            if cat == 'MAJOR':
+            if cat == 'DEV':
+                dev = bool(int (version))
+            elif cat == 'MAJOR':
                 major = int (version)
             elif cat == 'MINOR':
                 minor = int (version)
             elif cat == 'PATCH':
                 patch = int (version)
-            elif cat == 'DEV':
-                dev = bool(int (version))
             if major != -1 and minor != -1 and patch != -1 and dev != -1:
                 break
     return (major, minor, patch, dev)
@@ -46,9 +46,9 @@ def extract_version(cmakefile):
 current_dir = os.path.dirname(os.path.realpath(__file__))
 cmake_path = os.path.join(current_dir, '..', '..', 'cmake', 'QBDIConfig.cmake')
 VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, VERSION_DEV = extract_version(cmake_path)
-VERSION_FULL = "{}.{}.{}".format(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+VERSION_FULL = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}"
 if VERSION_DEV:
-    VERSION_FULL = VERSION_FULL + '-devel'
+    VERSION_FULL += '-devel'
 
 # Handle "read the docs" builds
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
@@ -57,23 +57,39 @@ if read_the_docs_build:
     doxygen_dirs = os.path.join(current_dir, '..')
     # Update documentation in doxygen config file (what is normally done by cmake)
     sed_cmd = [
-            's/@QBDI_VERSION_MAJOR@/{:d}/'.format(VERSION_MAJOR),
-            's/@QBDI_VERSION_MINOR@/{:d}/'.format(VERSION_MINOR),
-            's/@QBDI_VERSION_PATCH@/{:d}/'.format(VERSION_PATCH),
-            's/@QBDI_VERSION_DEV@/{:d}/'.format(VERSION_DEV),
-            's/@QBDI_VERSION_STRING@/{}/'.format(VERSION_FULL),
-            's/@CMAKE_CURRENT_BINARY_DIR@/./',
-            's/@CMAKE_CURRENT_SOURCE_DIR@/./',
-            's/@QBDI_ARCH@/X86_64/',
-            's/@QBDI_PLATFORM@/linux/',
+        's/@QBDI_VERSION_MAJOR@/{:d}/'.format(VERSION_MAJOR),
+        's/@QBDI_VERSION_MINOR@/{:d}/'.format(VERSION_MINOR),
+        's/@QBDI_VERSION_PATCH@/{:d}/'.format(VERSION_PATCH),
+        's/@QBDI_VERSION_DEV@/{:d}/'.format(VERSION_DEV),
+        f's/@QBDI_VERSION_STRING@/{VERSION_FULL}/',
+        's/@CMAKE_CURRENT_BINARY_DIR@/./',
+        's/@CMAKE_CURRENT_SOURCE_DIR@/./',
+        's/@QBDI_ARCH@/X86_64/',
+        's/@QBDI_PLATFORM@/linux/',
     ]
-    sedcmd = "sed '{}'".format(";".join(sed_cmd))
+    sedcmd = f"""sed '{";".join(sed_cmd)}'"""
     # Call doxygen
-    subprocess.call("{} qbdi_cpp.doxygen.in > qbdi_cpp.doxygen".format(sedcmd), shell=True, cwd=doxygen_dirs)
-    subprocess.call("{} qbdi_c.doxygen.in > qbdi_c.doxygen".format(sedcmd), shell=True, cwd=doxygen_dirs)
-    subprocess.call("{} qbdipreload.doxygen.in > qbdipreload.doxygen".format(sedcmd), shell=True, cwd=doxygen_dirs)
+    subprocess.call(
+        f"{sedcmd} qbdi_cpp.doxygen.in > qbdi_cpp.doxygen",
+        shell=True,
+        cwd=doxygen_dirs,
+    )
+    subprocess.call(
+        f"{sedcmd} qbdi_c.doxygen.in > qbdi_c.doxygen",
+        shell=True,
+        cwd=doxygen_dirs,
+    )
+    subprocess.call(
+        f"{sedcmd} qbdipreload.doxygen.in > qbdipreload.doxygen",
+        shell=True,
+        cwd=doxygen_dirs,
+    )
     subprocess.call("cp arch/X86_64/* .", shell=True, cwd=os.path.join(current_dir, '..', '..', 'include', 'QBDI'))
-    subprocess.call("{} Version.h.in > Version.h".format(sedcmd), shell=True, cwd=os.path.join(current_dir, '..', '..', 'include', 'QBDI'))
+    subprocess.call(
+        f"{sedcmd} Version.h.in > Version.h",
+        shell=True,
+        cwd=os.path.join(current_dir, '..', '..', 'include', 'QBDI'),
+    )
     subprocess.call('doxygen --version', shell=True, cwd=doxygen_dirs)
     subprocess.call('doxygen qbdi_cpp.doxygen', shell=True, cwd=doxygen_dirs)
     subprocess.call('doxygen qbdi_c.doxygen', shell=True, cwd=doxygen_dirs)

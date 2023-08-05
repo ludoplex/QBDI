@@ -16,8 +16,10 @@ import time
 import zipfile
 
 base_url = "https://api.github.com/repos/QBDI/QBDI"
-default_headers = {"Accept":"application/vnd.github.v3+json",
-                   "Authorization":"token {}".format(os.environ.get('GITHUB_TOKEN')) }
+default_headers = {
+    "Accept": "application/vnd.github.v3+json",
+    "Authorization": f"token {os.environ.get('GITHUB_TOKEN')}",
+}
 workflow_name = "PyQBDI Linux package"
 default_per_page = 100
 
@@ -37,14 +39,12 @@ def do_get_request(path, params={}, headers={}, retry=10, retry_sleep=1, binary=
             success = True
             break
         else:
-            print('[-] Fail to get {}: received {}'.format(base_url + path, r.status_code))
+            print(f'[-] Fail to get {base_url + path}: received {r.status_code}')
             success = False
             if i < retry - 1:
                 time.sleep(retry_sleep)
     r.raise_for_status()
-    if binary:
-        return r.content
-    return r.json()
+    return r.content if binary else r.json()
 
 def get_workflow_id(name):
 
@@ -96,7 +96,7 @@ def get_last_workflow_run(ident, branch=None, commit_hash=None):
         if last_run is None or dateutil.parser.isoparse(last_run['created_at']) < dateutil.parser.isoparse(r['created_at']):
             last_run = r
 
-    if last_run == None:
+    if last_run is None:
         print(f"[-] no complete run for branch='{branch}' commit_hash={commit_hash}")
         return None
 
@@ -128,7 +128,9 @@ def download_wheel(artifact):
 
     art = do_get_request(f"/actions/artifacts/{artifact['id']}/zip", binary=True)
 
-    name_regex = re.compile("^PyQBDI-.*-cp{}{}-.*\\.whl$".format(sys.version_info.major, sys.version_info.minor))
+    name_regex = re.compile(
+        f"^PyQBDI-.*-cp{sys.version_info.major}{sys.version_info.minor}-.*\\.whl$"
+    )
     with zipfile.ZipFile(io.BytesIO(art)) as zip_archive:
         for f in zip_archive.infolist():
             if bool(name_regex.match(f.filename)):
@@ -141,7 +143,7 @@ def download_wheel(artifact):
 def install_wheel(wheelname, wheeldata):
 
     with tempfile.TemporaryDirectory() as work_dir:
-        wheel_path = work_dir + '/' + wheelname
+        wheel_path = f'{work_dir}/{wheelname}'
         with open(wheel_path, 'wb') as f:
             f.write(wheeldata)
 
@@ -150,7 +152,7 @@ def install_wheel(wheelname, wheeldata):
         subprocess.check_call([sys.executable, "-m", "pip", "install", wheel_path])
 
 def check_installation():
-    print(f'[+] test installation')
+    print('[+] test installation')
     subprocess.check_call([sys.executable, "-c", "import pyqbdi; print(pyqbdi.__version__)"])
 
 def install_pyqbdi():
@@ -164,13 +166,13 @@ def install_pyqbdi():
 
     # search a run with this hash commit on this branch
     run = get_last_workflow_run(workflow_ID, branch=current_branch, commit_hash=current_hash)
-    if run == None:
+    if run is None:
         # search a run with this hash commit (branch filter isn't not always associated with a run)
         run = get_last_workflow_run(workflow_ID, branch=None, commit_hash=current_hash)
-    if run == None:
+    if run is None:
         # search a run on this branch
         run = get_last_workflow_run(workflow_ID, branch=current_branch)
-    if run == None and current_branch != "dev-next":
+    if run is None and current_branch != "dev-next":
         # search a run on dev-next
         run = get_last_workflow_run(workflow_ID, "dev-next")
 

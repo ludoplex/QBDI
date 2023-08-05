@@ -148,7 +148,7 @@ class SQLiteDBAdapter:
         # Find run result
         cursor.execute('select * from Runs where branch=? order by timestamp desc;', (branch,))
         row = cursor.fetchone()
-        if row == None:
+        if row is None:
             return None
         # Rebuild RunResult object Run row
         run_result = RunResult.from_dict({k: row[k] for k in row.keys()})

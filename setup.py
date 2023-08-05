@@ -50,18 +50,14 @@ def detect_QBDI_platform():
 
     if base_os == 'darwin':
         current_os = 'osx'
-    elif base_os == 'windows':
-        current_os = 'windows'
     elif base_os == 'linux':
         current_os = 'linux'
 
+    elif base_os == 'windows':
+        current_os = 'windows'
     if base_arch in ['amd64', 'amd', 'x64', 'x86_64', 'x86', 'i386', 'i686']:
         # intel arch
-        if sys.maxsize > 2**32:
-            arch = "X86_64"
-        else:
-            arch = "X86"
-
+        arch = "X86_64" if sys.maxsize > 2**32 else "X86"
     elif base_arch in ['aarch64', 'arm64', 'aarch64_be', 'armv8b', 'armv8l']:
         assert sys.maxsize > 2**32
         arch = "AARCH64"
@@ -77,8 +73,9 @@ def detect_QBDI_platform():
     if current_os and arch:
         return (current_os, arch)
 
-    raise RuntimeError("Cannot determine the QBDI platform : system={}, machine={}, is64bits={}".format(
-                            base_arch, base_os, sys.maxsize > 2**32))
+    raise RuntimeError(
+        f"Cannot determine the QBDI platform : system={base_arch}, machine={base_os}, is64bits={sys.maxsize > 2**32}"
+    )
 
 
 class CMakeExtension(Extension):

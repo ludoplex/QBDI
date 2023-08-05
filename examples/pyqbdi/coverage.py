@@ -17,8 +17,7 @@ class CovModule:
         assert module.name == self.name
         if module.range.start < self.range.start:
             self.range.start = module.range.start
-        if self.range.end < module.range.end:
-            self.range.end = module.range.end
+        self.range.end = max(self.range.end, module.range.end)
         self.executable |= module.permission & pyqbdi.PF_EXEC
 
 def get_modules():
@@ -83,7 +82,7 @@ def vmCB(vm, evt, gpr, fpr, data):
 def pyqbdipreload_on_run(vm, start, stop):
 
     # setup statistics
-    stats = dict(addrs=set(), sizes=dict())
+    stats = dict(addrs=set(), sizes={})
     # add callback on Basic blocks
     vm.addVMEventCB(pyqbdi.BASIC_BLOCK_ENTRY, vmCB, stats)
     # write coverage on exit
