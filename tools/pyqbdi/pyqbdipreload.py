@@ -44,7 +44,7 @@ def run():
             os.path.basename(pyqbdi.__file__).replace("pyqbdi", "pyqbdipreloadlib"))
 
     if not os.path.isfile(preloadlib):
-        print("Cannot found pyqbdi preload library : {}".format(preloadlib))
+        print(f"Cannot found pyqbdi preload library : {preloadlib}")
         exit(1)
 
     # add LD_PRELOAD or DYLD_INSERT_LIBRARIES
@@ -54,14 +54,14 @@ def run():
         environ["DYLD_LIBRARY_PATH"] = os.path.join(sys.base_prefix, 'lib')
         environ["DYLD_BIND_AT_LAUNCH"] = "1"
     elif platform.system() == 'Linux':
-        libpythonname = "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        libpythonname = f"python{sys.version_info.major}.{sys.version_info.minor}"
         libpython = ctypesutil.find_library(libpythonname)
         if not libpython:
-            libpythonname = "python{}.{}{}".format(sys.version_info.major, sys.version_info.minor, sys.abiflags)
+            libpythonname = f"python{sys.version_info.major}.{sys.version_info.minor}{sys.abiflags}"
             libpython = ctypesutil.find_library(libpythonname)
-            if not libpython:
-                print("PyQBDI in PRELOAD mode need lib{}.so".format(libpythonname))
-                exit(1)
+        if not libpython:
+            print(f"PyQBDI in PRELOAD mode need lib{libpythonname}.so")
+            exit(1)
 
         environ["LD_PRELOAD"] = os.pathsep.join([libpython, preloadlib])
         environ["LD_BIND_NOW"] = "1"
@@ -71,7 +71,7 @@ def run():
 
     # add PYQBDI_TOOL
     if not os.path.isfile(script):
-        print("Cannot find {} script".format(script))
+        print(f"Cannot find {script} script")
         exit(1)
     else:
         environ["PYQBDI_TOOL"] = script
@@ -83,15 +83,14 @@ def run():
     if '/' in binary:
         # absolute or relative path
         binarypath = binary
-    else:
-        if "PATH" in environ:
-            for p in environ["PATH"].split(os.pathsep):
-                if os.path.isfile(os.path.join(p, binary)):
-                    binarypath = os.path.join(p, binary)
-                    break
+    elif "PATH" in environ:
+        for p in environ["PATH"].split(os.pathsep):
+            if os.path.isfile(os.path.join(p, binary)):
+                binarypath = os.path.join(p, binary)
+                break
 
     if not binarypath or not os.path.isfile(binarypath):
-        print("Cannot find binary {}".format(binary))
+        print(f"Cannot find binary {binary}")
         exit(1)
 
     os.execve(binarypath, args, environ)

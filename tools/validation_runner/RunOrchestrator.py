@@ -24,9 +24,9 @@ from TestResult import TestResult
 from RunResult import RunResult
 
 def run_test(test, env, idx):
-    print('[{}] Validating {}'.format(idx, test.command_line()))
+    print(f'[{idx}] Validating {test.command_line()}')
     # Setup files
-    coverage_file = '.{}_coverage'.format(idx)
+    coverage_file = f'.{idx}_coverage'
     error = False
 
     env['VALIDATOR_COVERAGE'] = coverage_file
@@ -36,7 +36,7 @@ def run_test(test, env, idx):
         retcode = process.returncode
         result = process.stderr.decode('utf8')
     except OSError as e:
-        print('[{}] Failled to execute {} : {}'.format(idx, test.command_line(), e))
+        print(f'[{idx}] Failled to execute {test.command_line()} : {e}')
         retcode = 255
         error = True
         result = ""
@@ -52,9 +52,9 @@ def run_test(test, env, idx):
     test_result = TestResult(test, retcode, result, coverage, error)
 
     if test_result.retcode == 0 and test_result.same_output == 1:
-        print('[{}] Validated {}'.format(idx, test.command_line()))
+        print(f'[{idx}] Validated {test.command_line()}')
     else:
-        print('[{}] Failed validation {}'.format(idx, test.command_line()))
+        print(f'[{idx}] Failed validation {test.command_line()}')
 
     return test_result
 
@@ -70,8 +70,5 @@ class RunOrchestrator:
         for idx in range(len(tests)):
             env = dict(os.environ, LD_PRELOAD=self.run_cfg.validator_path, VALIDATOR_VERBOSITY='Detail', LD_BIND_NOW='1')
             async_res.append(pool.apply_async(run_test, (tests[idx], env, idx)))
-        test_results = []
-        for idx in range(len(tests)):
-            test_results.append(async_res[idx].get())
-        run_result = RunResult(test_results)
-        return run_result
+        test_results = [async_res[idx].get() for idx in range(len(tests))]
+        return RunResult(test_results)

@@ -5,11 +5,9 @@ import tempfile
 import os
 import sys
 
-LIPO = "lipo"
 IOS_LIPO="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/lipo"
 
-if os.path.exists(IOS_LIPO):
-    LIPO = IOS_LIPO
+LIPO = IOS_LIPO if os.path.exists(IOS_LIPO) else "lipo"
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -29,15 +27,13 @@ def listArchs(archive):
 
 
 def extractArch(archive, arch, path):
-    name = arch + "-" + os.path.basename(archive)
+    name = f"{arch}-{os.path.basename(archive)}"
     fpath = os.path.join(path, name)
     try:
         t = subprocess.check_call([LIPO, "-thin", arch, archive, "-output", fpath])
     except:
         t = 1
-    if t != 0:
-        return ""
-    return fpath
+    return "" if t != 0 else fpath
 
 
 def extractObjs(archive, path):
@@ -45,9 +41,7 @@ def extractObjs(archive, path):
         t = subprocess.check_call(["ar", "-x", archive], cwd=path)
     except:
         t = 1
-    if t != 0:
-        return False
-    return True
+    return t == 0
 
 
 def archiveObjs(archive, path):
@@ -57,9 +51,7 @@ def archiveObjs(archive, path):
         t = subprocess.check_call(["libtool", "-static", "-o", archive] + files, cwd=path)
     except:
         t = 1
-    if t != 0:
-        return False
-    return True
+    return t == 0
 
 
 def mergeArch(archives, outpath):
@@ -69,16 +61,14 @@ def mergeArch(archives, outpath):
         t = subprocess.check_call([LIPO, "-create"] + archives + ["-output", outpath])
     except:
         t = 1
-    if t != 0:
-        return False
-    return True
+    return t == 0
 
 
 def rename_object(archive, ofname, suffix="", remove=False):
     root, ext = os.path.splitext(ofname)
-    nfname = "{}_{}{}".format(root, suffix, ext)
-    altofname = "{}.o2".format(root)
-    altnfname = "{}_{}.o2".format(root, suffix)
+    nfname = f"{root}_{suffix}{ext}"
+    altofname = f"{root}.o2"
+    altnfname = f"{root}_{suffix}.o2"
 
     archs = listArchs(archive)
     isFat = len(archs) > 1
@@ -93,15 +83,15 @@ def rename_object(archive, ofname, suffix="", remove=False):
             if isFat:
                 thinar = extractArch(archive, arch, tdir)
                 if not thinar:
-                    eprint("Cannot extract arch " + arch)
+                    eprint(f"Cannot extract arch {arch}")
                     continue
             # Create tmp dir for extracted objects
             arname = os.path.basename(thinar)
-            xdir = os.path.join(tdir, arname) + ".dir"
+            xdir = f"{os.path.join(tdir, arname)}.dir"
             os.mkdir(xdir)
             # Extract objects
             if not extractObjs(thinar, xdir):
-                eprint("Cannot extract objects for " + arch)
+                eprint(f"Cannot extract objects for {arch}")
                 continue
             ofpath = os.path.join(xdir, ofname)
             nfpath = os.path.join(xdir, nfname)
@@ -113,24 +103,23 @@ def rename_object(archive, ofname, suffix="", remove=False):
                 # Rename object
                 rename = False
                 if os.path.exists(ofpath):
-                    print("Move {} to {}".format(ofpath, nfpath))
+                    print(f"Move {ofpath} to {nfpath}")
                     os.rename(ofpath, nfpath)
                     rename = True
                 if os.path.exists(altofpath):
-                    print("Move {} to {}".format(altofpath, altnfpath))
+                    print(f"Move {altofpath} to {altnfpath}")
                     os.rename(altofpath, altnfpath)
                     rename = True
                 if not rename:
-                    eprint("Cannot find object {} for arch {}".format(ofname, arch))
+                    eprint(f"Cannot find object {ofname} for arch {arch}")
                     continue
             # Archive objects
             archiveObjs(thinar, xdir)
             # Add archive to modified archive list
             marchives.append(thinar)
 
-        if isFat:
-            # Merge all subarch into original file
-            if not mergeArch(marchives, archive):
+        if not mergeArch(marchives, archive):
+            if isFat:
                 raise RuntimeError("Cannot update original file")
 
 if __name__ == '__main__':
@@ -146,7 +135,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.input), "Input file not found ({})".format(args.input)
+    assert os.path.exists(args.input), f"Input file not found ({args.input})"
     if args.input != args.output:
         os.makedirs(os.path.split(os.path.realpath(args.input))[0], exist_ok=True)
         shutil.copy2(args.input, args.output)

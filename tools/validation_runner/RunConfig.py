@@ -22,16 +22,13 @@ import multiprocessing
 
 class TestConfig:
     def __init__(self, conf = None):
-        if conf == None:
+        if conf is None:
             return
         if 'command' not in conf:
-            print('Invalid test ' + str(conf))
+            print(f'Invalid test {str(conf)}')
             sys.exit(1)
         self.command = conf['command']
-        if 'arguments' in conf:
-            self.arguments = conf['arguments']
-        else:
-            self.arguments = []
+        self.arguments = conf['arguments'] if 'arguments' in conf else []
 
     @classmethod
     def from_dict(cls, d):
@@ -41,7 +38,7 @@ class TestConfig:
         return self
 
     def command_line(self):
-        return '{} {}'.format(self.command, ' '.join(self.arguments))
+        return f"{self.command} {' '.join(self.arguments)}"
 
 class RunConfig:
     def __init__(self, config_file, lib=None, thread=0):
@@ -61,8 +58,7 @@ class RunConfig:
             sys.exit(1)
         # Tests
         self.tests = []
-        for test in conf['tests']:
-            self.tests.append(TestConfig(test))
+        self.tests.extend(TestConfig(test) for test in conf['tests'])
         # Thread
         if thread != 0:
             self.thread = thread

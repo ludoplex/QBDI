@@ -40,17 +40,17 @@ def read_header(libpath):
     return rpath, dlib
 
 def setID(libname):
-    print("= Set ID to {} =".format(os.path.basename(libname)))
+    print(f"= Set ID to {os.path.basename(libname)} =")
     subprocess.run(["install_name_tool", "-id", os.path.basename(libname), libname],
                    check=True)
 
 def removeRpath(libname, path):
-    print("= Remove rpath {} =".format(path))
+    print(f"= Remove rpath {path} =")
     subprocess.run(["install_name_tool", "-delete_rpath", path, libname],
                    check=True)
 
 def movLib(libname, oldlib, newlib):
-    print("= replace {} by {} =".format(oldlib, newlib))
+    print(f"= replace {oldlib} by {newlib} =")
     subprocess.run(["install_name_tool", "-change", oldlib, newlib, libname],
                    check=True)
 
@@ -63,16 +63,16 @@ def resign(libname):
 def run():
 
     if len(sys.argv) != 2:
-        print("Usage : {} <lib>".format(sys.argv[0]))
+        print(f"Usage : {sys.argv[0]} <lib>")
         sys.exit(1)
 
     libpath = sys.argv[1]
 
     if not os.path.isfile(libpath):
-        print("Invalid library {}".format(libpath))
+        print(f"Invalid library {libpath}")
         sys.exit(1)
 
-    print("== fix library {} ==".format(libpath))
+    print(f"== fix library {libpath} ==")
     rpath, dlib = read_header(libpath)
 
     setID(libpath)
@@ -83,7 +83,7 @@ def run():
         # set python lib to libpythonX.Y.dylib
         # the path of libpython will be add to DYLD_LIBRARY_PATH
         # at runtime by pyqbdipreload.py
-        targetlib = "libpython{}.{}.dylib".format(sys.version_info.major, sys.version_info.minor)
+        targetlib = f"libpython{sys.version_info.major}.{sys.version_info.minor}.dylib"
         movLib(libpath, lib, targetlib)
 
     for r in rpath:

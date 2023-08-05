@@ -27,9 +27,10 @@ class Scan_Pattern_Exception(Exception):
 
 def scan_for_pattern(data, pattern):
     m = re.search(pattern, data)
-    if m != None:
+    if m is None:
+        raise Scan_Pattern_Exception(f"Not found {pattern} in :\n{data}")
+    else:
         return m.groups()
-    raise Scan_Pattern_Exception("Not found {} in :\n{}".format(pattern, data))
 
 def scan_for_multipattern(data, pattern):
     r = {}
@@ -40,11 +41,11 @@ def scan_for_multipattern(data, pattern):
 def coverage_to_log(coverage):
     coverage = list(coverage)
     coverage.sort(key=itemgetter(1), reverse=True)
-    return '\n'.join(map(lambda x: '{}: {}'.format(x[0], x[1]), coverage))
+    return '\n'.join(map(lambda x: f'{x[0]}: {x[1]}', coverage))
 
 class TestResult:
     def __init__(self, cfg = None, retcode = None, result = None, coverage = None, error=False):
-        if cfg == None or retcode == None or result == None or coverage == None:
+        if cfg is None or retcode is None or result is None or coverage is None:
             return
         self.cfg = cfg
         self.retcode = retcode
@@ -78,7 +79,7 @@ class TestResult:
                 self.output_len_dbi = int(scan_for_pattern(result, 'SizeOutput: (\d+) (\d+)')[1])
                 self.same_output = 1 if 'SameOutput: True' in result else 0
             except Scan_Pattern_Exception as e:
-                print("[!] {}".format(e))
+                print(f"[!] {e}")
                 error = True
                 self.retcode = 255
             else:
